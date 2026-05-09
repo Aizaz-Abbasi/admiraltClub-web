@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   fetchMyMembership,
   fetchMyDayPasses,
+  fetchPlans,
   createCheckoutSession,
   cancelMembership,
   verifyCheckoutSession,
@@ -12,6 +13,11 @@ import {
   MembershipType,
   DayPass,
 } from '../services/membership';
+
+function formatPrice(amount: number | null | undefined, currency = 'usd') {
+  if (amount == null) return '—';
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount / 100);
+}
 import { fetchMyBookings, Reservation } from '../services/bookig';
 import { getApiErrorMessage } from '../api/client';
 
@@ -259,6 +265,11 @@ export function MembershipPage({ stripeSessionId }: MembershipPageProps) {
     return () => { unmounted = true; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const { data: plans } = useQuery({
+    queryKey: ['plans'],
+    queryFn: fetchPlans,
+  });
+
   const { data: membership, isLoading: membershipLoading } = useQuery({
     queryKey: ['membership'],
     queryFn: fetchMyMembership,
@@ -292,7 +303,10 @@ export function MembershipPage({ stripeSessionId }: MembershipPageProps) {
   });
 
   const handlePurchase = (type: MembershipType) => {
-    if (window.confirm(`Purchase a ${type === 'DAY_PASS' ? 'Day Pass ($85)' : planLabels[type]}?`)) {
+    const priceLabel = type === 'DAY_PASS'
+      ? `Day Pass (${formatPrice(plans?.DAY_PASS?.amount, plans?.DAY_PASS?.currency)})`
+      : planLabels[type];
+    if (window.confirm(`Purchase a ${priceLabel}?`)) {
       checkoutMutation.mutate(type);
     }
   };
@@ -449,7 +463,7 @@ export function MembershipPage({ stripeSessionId }: MembershipPageProps) {
                 <h3 className="text-2xl font-serif font-bold text-white mb-2">Monthly</h3>
                 <p className="text-slate-400 mb-6 text-sm">For the dedicated golfer seeking perfection.</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-bold text-white">$350</span>
+                  <span className="text-5xl font-bold text-white">{formatPrice(plans?.MONTHLY?.amount, plans?.MONTHLY?.currency)}</span>
                   <span className="text-slate-400 font-medium">/month</span>
                 </div>
               </div>
@@ -486,10 +500,14 @@ export function MembershipPage({ stripeSessionId }: MembershipPageProps) {
                 <h3 className="text-2xl font-serif font-bold text-gold-500 mb-2 relative z-10">Annual Club Member</h3>
                 <p className="text-slate-300 mb-6 text-sm relative z-10">The ultimate Admiralty Club experience.</p>
                 <div className="flex items-baseline gap-2 relative z-10">
-                  <span className="text-5xl font-bold text-white drop-shadow-md">$3,500</span>
+                  <span className="text-5xl font-bold text-white drop-shadow-md">{formatPrice(plans?.YEARLY?.amount, plans?.YEARLY?.currency)}</span>
                   <span className="text-slate-400 font-medium">/year</span>
                 </div>
-                <p className="text-gold-400 text-xs mt-2 font-medium relative z-10">Save $700 annually</p>
+                {plans?.MONTHLY?.amount && plans?.YEARLY?.amount && (
+                  <p className="text-gold-400 text-xs mt-2 font-medium relative z-10">
+                    Save {formatPrice(plans.MONTHLY.amount * 12 - plans.YEARLY.amount, plans.YEARLY.currency)} annually
+                  </p>
+                )}
               </div>
               <div className="p-8 flex-1 flex flex-col bg-navy-800">
                 <ul className="space-y-4 mb-8 flex-1 text-sm">
@@ -533,7 +551,7 @@ export function MembershipPage({ stripeSessionId }: MembershipPageProps) {
               >
                 {loadingType === 'DAY_PASS'
                   ? <><Loader2Icon className="w-4 h-4 animate-spin" /> Redirecting…</>
-                  : <><TicketIcon className="w-4 h-4" /> Purchase Day Pass · $85</>}
+                  : <><TicketIcon className="w-4 h-4" /> Purchase Day Pass · {formatPrice(plans?.DAY_PASS?.amount, plans?.DAY_PASS?.currency)}</>}
               </button>
             </div>
 

@@ -45,6 +45,23 @@ export interface VerifySessionResult {
     dayPass?: DayPass | null;
 }
 
+export interface Plan {
+    label: string;
+    amount: number | null;
+    currency: string;
+}
+
+export interface PlansResponse {
+    MONTHLY: Plan;
+    YEARLY: Plan;
+    DAY_PASS: Plan;
+}
+
+export async function fetchPlans(): Promise<PlansResponse> {
+    const res = await apiGet<{ success: boolean; plans: PlansResponse }>('membership/plans');
+    return res.plans;
+}
+
 export async function fetchMyMembership() {
     const res = await apiGet<{ success: boolean; membership: Membership | null }>('membership/my');
     return res.membership;

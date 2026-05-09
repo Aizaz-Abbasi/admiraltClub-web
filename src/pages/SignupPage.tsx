@@ -372,6 +372,18 @@ export function SignupPage({
           </form>
         </div>
       </motion.div>
+
+      {/* Footer links */}
+      <p className="mt-6 text-xs text-slate-500 text-center relative z-10">
+        By continuing, you agree to our{' '}
+        <a href="/terms" className="text-slate-400 hover:text-gold-500 transition-colors underline underline-offset-2">
+          Terms of Service
+        </a>{' '}
+        and{' '}
+        <a href="/privacy" className="text-slate-400 hover:text-gold-500 transition-colors underline underline-offset-2">
+          Privacy Policy
+        </a>
+      </p>
     </div>
   );
 }

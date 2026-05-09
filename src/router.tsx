@@ -13,6 +13,8 @@ import {
 import { App } from "./App";
 import { SignupPage } from "./pages/SignupPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
+import { TermsPage } from "./pages/TermsPage";
+import { PrivacyPage } from "./pages/PrivacyPage";
 import { getStoredUser, useAuthActions, useAuthUser } from "./auth";
 
 const EMPTY_SEARCH = {
@@ -109,10 +111,24 @@ const resetPasswordRoute = createRoute({
   }),
 });
 
+const termsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/terms",
+  component: TermsPage,
+});
+
+const privacyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/privacy",
+  component: PrivacyPage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   dashboardRoute,
   resetPasswordRoute,
+  termsRoute,
+  privacyRoute,
 ]);
 
 // export const router = createRouter({ routeTree });
