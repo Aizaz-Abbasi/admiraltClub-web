@@ -152,7 +152,7 @@ function DayPassForm({ dayPass, futureBookings, onSuccess }: DayPassFormProps) {
           Select Booking
         </label>
         {futureBookings.length === 0 ? (
-          <p className="text-xs text-slate-500 italic">No upcoming bookings found. Book a bay first.</p>
+          <p className="text-xs text-red-500 italic">No upcoming bookings found. Book a bay first.</p>
         ) : (
           <select
             value={bookingId}
