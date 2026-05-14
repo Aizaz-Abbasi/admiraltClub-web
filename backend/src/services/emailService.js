@@ -12,7 +12,7 @@ const sendBookingEmail = async ({ to, reservation, date }) => {
 
     const msg = {
         to,
-        from: "admiraltygolfclub@gmail.com",
+        from: "noreply@theadmiraltyclub.com",
         subject: "Your Booking is Confirmed ⛳ Admiralty Golf Club",
         html: `
 <!DOCTYPE html>
@@ -180,7 +180,7 @@ const sendGuestCredentialsEmail = async ({ to, name, email, password, accessDate
 
     const msg = {
         to,
-        from: "admiraltygolfclub@gmail.com",
+        from: "noreply@theadmiraltyclub.com",
         subject: "Your Day Pass — Admiralty Golf Club Login Details",
         html: `
 <!DOCTYPE html>
@@ -295,7 +295,7 @@ const sendGuestCredentialsEmail = async ({ to, name, email, password, accessDate
 const sendPasswordResetEmail = async ({ to, name, resetUrl }) => {
     const msg = {
         to,
-        from: "admiraltygolfclub@gmail.com",
+        from: "noreply@theadmiraltyclub.com",
         subject: "Reset Your Password — Admiralty Golf Club",
         html: `
 <!DOCTYPE html>
@@ -394,7 +394,7 @@ module.exports = { sendBookingEmail, sendGuestCredentialsEmail, sendPasswordRese
 
 //     const msg = {
 //         to,
-//         from: "admiraltygolfclub@gmail.com",
+//         from: "noreply@theadmiraltyclub.com",
 //         subject: "Booking Confirmed 🎉",
 //         html: `
 //             <h2>Your booking is confirmed</h2>
