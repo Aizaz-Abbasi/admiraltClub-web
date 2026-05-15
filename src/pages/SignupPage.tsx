@@ -36,6 +36,7 @@ export function SignupPage({
     confirmPassword: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [agreedToRules, setAgreedToRules] = useState(false);
 
   const handleForgotSubmit = async () => {
     if (!forgotEmail) {
@@ -77,6 +78,7 @@ export function SignupPage({
       if (formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = "Passwords do not match";
       }
+      if (!agreedToRules) newErrors.agreedToRules = "You must agree to the Club Rules to create an account";
     }
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -131,6 +133,7 @@ export function SignupPage({
               onClick={() => {
                 setIsLogin(false);
                 setErrors({});
+                setAgreedToRules(false);
               }}
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${!isLogin ? "bg-navy-800 text-white shadow-sm border border-navy-600" : "text-slate-500 hover:text-slate-300"}`}
             >
@@ -352,6 +355,39 @@ export function SignupPage({
                         )}
                       </button>
                     </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence mode="wait">
+              {!isLogin && (
+                <motion.div
+                  key="rules-checkbox"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-1"
+                >
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={agreedToRules}
+                      onChange={(e) => {
+                        setAgreedToRules(e.target.checked);
+                        if (errors.agreedToRules) setErrors({ ...errors, agreedToRules: "" });
+                      }}
+                      className="mt-0.5 h-4 w-4 rounded border-navy-600 bg-navy-900 text-gold-500 accent-gold-500 cursor-pointer flex-shrink-0"
+                    />
+                    <span className="text-sm text-slate-400 leading-snug">
+                      I have read and agree to the{" "}
+                      <a href="/rules" target="_blank" className="text-gold-500 hover:text-gold-400 underline underline-offset-2 transition-colors">
+                        Club Rules & Responsibilities
+                      </a>
+                    </span>
+                  </label>
+                  {errors.agreedToRules && (
+                    <p className="text-red-400 text-xs mt-1">{errors.agreedToRules}</p>
                   )}
                 </motion.div>
               )}

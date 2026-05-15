@@ -38,9 +38,7 @@ const sendBookingEmail = async ({ to, reservation, date }) => {
           <tr>
             <td align="center" style="background:linear-gradient(135deg,#0d1526 0%,#111d35 100%);border-radius:16px 16px 0 0;padding:40px 32px 32px;border:1px solid #1e2d4a;border-bottom:none;">
               <a href="https://theadmiraltyclub.com" style="display:inline-block;text-decoration:none;margin-bottom:16px;">
-                <div style="width:64px;height:64px;background:#0a0f1e;border-radius:50%;border:2px solid #c9a84c;display:inline-flex;align-items:center;justify-content:center;">
-                  <span style="font-size:28px;">⛳</span>
-                </div>
+                <img src="https://theadmiraltyclub.com/logo.png" alt="The Admiralty Club" width="80" style="display:block;margin:0 auto;" />
               </a>
               <h1 style="margin:0;font-size:13px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#c9a84c;">
                 <a href="https://theadmiraltyclub.com" style="color:#c9a84c;text-decoration:none;">Admiralty Golf Club</a>
@@ -218,9 +216,7 @@ const sendGuestCredentialsEmail = async ({
           <tr>
             <td align="center" style="background:linear-gradient(135deg,#0d1526 0%,#111d35 100%);border-radius:16px 16px 0 0;padding:40px 32px 32px;border:1px solid #1e2d4a;border-bottom:none;">
               <a href="https://theadmiraltyclub.com" style="display:inline-block;text-decoration:none;margin-bottom:16px;">
-                <div style="width:64px;height:64px;background:#0a0f1e;border-radius:50%;border:2px solid #c9a84c;display:inline-flex;align-items:center;justify-content:center;">
-                  <span style="font-size:28px;">⛳</span>
-                </div>
+                <img src="https://theadmiraltyclub.com/logo.png" alt="The Admiralty Club" width="80" style="display:block;margin:0 auto;" />
               </a>
               <h1 style="margin:0;font-size:13px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#c9a84c;">Admiralty Golf Club</h1>
               <div style="width:48px;height:1px;background:linear-gradient(to right,transparent,#c9a84c,transparent);margin:16px auto;"></div>
@@ -338,9 +334,7 @@ const sendPasswordResetEmail = async ({ to, name, resetUrl }) => {
           <tr>
             <td align="center" style="background:linear-gradient(135deg,#0d1526 0%,#111d35 100%);border-radius:16px 16px 0 0;padding:40px 32px 32px;border:1px solid #1e2d4a;border-bottom:none;">
               <a href="https://theadmiraltyclub.com" style="display:inline-block;text-decoration:none;margin-bottom:16px;">
-                <div style="width:64px;height:64px;background:#0a0f1e;border-radius:50%;border:2px solid #c9a84c;display:inline-flex;align-items:center;justify-content:center;">
-                  <span style="font-size:28px;">⛳</span>
-                </div>
+                <img src="https://theadmiraltyclub.com/logo.png" alt="The Admiralty Club" width="80" style="display:block;margin:0 auto;" />
               </a>
               <h1 style="margin:0;font-size:13px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#c9a84c;">Admiralty Golf Club</h1>
               <div style="width:48px;height:1px;background:linear-gradient(to right,transparent,#c9a84c,transparent);margin:16px auto;"></div>
