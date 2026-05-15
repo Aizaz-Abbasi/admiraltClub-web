@@ -2,19 +2,24 @@ const sgMail = require("@sendgrid/mail");
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const sendBookingEmail = async ({ to, reservation, date }) => {
-    const startTime = new Date(reservation.startTime).toLocaleString('en-US', {
-        weekday: 'long', year: 'numeric', month: 'long',
-        day: 'numeric', hour: '2-digit', minute: '2-digit',
-    });
-    const endTime = new Date(reservation.endTime).toLocaleString('en-US', {
-        hour: '2-digit', minute: '2-digit',
-    });
+  const startTime = new Date(reservation.startTime).toLocaleString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const endTime = new Date(reservation.endTime).toLocaleString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
-    const msg = {
-        to,
-        from: "noreply@theadmiraltyclub.com",
-        subject: "Your Booking is Confirmed ⛳ Admiralty Golf Club",
-        html: `
+  const msg = {
+    to,
+    from: "noreply@theadmiraltyclub.com",
+    subject: "Your Booking is Confirmed ⛳ Admiralty Golf Club",
+    html: `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -165,26 +170,38 @@ const sendBookingEmail = async ({ to, reservation, date }) => {
 </body>
 </html>
     `,
-    };
+  };
 
-    try {
-        await sgMail.send(msg);
-        console.log("Booking email sent to:", to);
-    } catch (error) {
-        console.error("SendGrid error:", error.response?.body?.errors ?? error.message);
-    }
+  try {
+    await sgMail.send(msg);
+    console.log("Booking email sent to:", to);
+  } catch (error) {
+    console.error(
+      "SendGrid error:",
+      JSON.stringify(error.response?.body ?? error.message, null, 2),
+    );
+  }
 };
 
-const sendGuestCredentialsEmail = async ({ to, name, email, password, accessDate }) => {
-    const formattedDate = new Date(accessDate).toLocaleDateString('en-US', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-    });
+const sendGuestCredentialsEmail = async ({
+  to,
+  name,
+  email,
+  password,
+  accessDate,
+}) => {
+  const formattedDate = new Date(accessDate).toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
-    const msg = {
-        to,
-        from: "noreply@theadmiraltyclub.com",
-        subject: "Your Day Pass — Admiralty Golf Club Login Details",
-        html: `
+  const msg = {
+    to,
+    from: "noreply@theadmiraltyclub.com",
+    subject: "Your Day Pass — Admiralty Golf Club Login Details",
+    html: `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -285,23 +302,26 @@ const sendGuestCredentialsEmail = async ({ to, name, email, password, accessDate
 </body>
 </html>
         `,
-    };
+  };
 
-    try {
-        await sgMail.send(msg);
-        console.log("Guest credentials email sent to:", to);
-    } catch (error) {
-        console.error("SendGrid error:", error.response?.body?.errors ?? error.message);
-        throw error;
-    }
+  try {
+    await sgMail.send(msg);
+    console.log("Guest credentials email sent to:", to);
+  } catch (error) {
+    console.error(
+      "SendGrid error:",
+      JSON.stringify(error.response?.body ?? error.message, null, 2),
+    );
+    throw error;
+  }
 };
 
 const sendPasswordResetEmail = async ({ to, name, resetUrl }) => {
-    const msg = {
-        to,
-        from: "noreply@theadmiraltyclub.com",
-        subject: "Reset Your Password — Admiralty Golf Club",
-        html: `
+  const msg = {
+    to,
+    from: "noreply@theadmiraltyclub.com",
+    subject: "Reset Your Password — Admiralty Golf Club",
+    html: `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -376,54 +396,23 @@ const sendPasswordResetEmail = async ({ to, name, resetUrl }) => {
 </body>
 </html>
         `,
-    };
+  };
 
-    try {
-        await sgMail.send(msg);
-        console.log("Password reset email sent to:", to);
-    } catch (error) {
-        console.error("SendGrid error:", error.response?.body?.errors ?? error.message);
-        throw error;
-    }
+  try {
+    await sgMail.send(msg);
+    console.log("Password reset email sent to:", to);
+  } catch (error) {
+    console.log(
+      "SendGrid error:",
+      JSON.stringify(error.response?.body ?? error.message, null, 2),
+    );
+    throw error;
+  }
 };
 
-module.exports = { sendBookingEmail, sendGuestCredentialsEmail, sendPasswordResetEmail };
+module.exports = {
+  sendBookingEmail,
+  sendGuestCredentialsEmail,
+  sendPasswordResetEmail,
+};
 
-
-
-// const sgMail = require("@sendgrid/mail");
-
-// sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
-// const sendBookingEmail = async ({ to, reservation, date }) => {
-//     console.log("process.env.SENDGRID_API_KEY", process.env.SENDGRID_API_KEY);
-
-//     const msg = {
-//         to,
-//         from: "noreply@theadmiraltyclub.com",
-//         subject: "Booking Confirmed 🎉",
-//         html: `
-//             <h2>Your booking is confirmed</h2>
-//             <p><strong>Simulator:</strong> ${reservation.simulator.name}</p>
-//             <p><strong>Location:</strong> ${reservation.simulator.location.name}</p>
-//             <p><strong>Date:</strong> ${date}</p>
-//             <p><strong>Start Time:</strong> ${new Date(reservation.startTime).toLocaleString()}</p>
-//             <p><strong>End Time:</strong> ${new Date(reservation.endTime).toLocaleString()}</p>
-//             <p><strong>Door Code:</strong> ${reservation.doorCode}</p>
-//             <br/>
-//             <p>Enjoy your game ⛳</p>
-//         `,
-//     };
-
-//     let sendG = sgMail
-//         .send(msg)
-//         .then(() => {
-//             console.log('Email sent')
-//         })
-//         .catch((error) => {
-//             console.error("SendGrid errors:", JSON.stringify(error.response?.body?.errors, null, 2));
-//         });
-//     return sendG
-// };
-
-// module.exports = { sendBookingEmail };
