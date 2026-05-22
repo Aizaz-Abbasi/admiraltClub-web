@@ -1,5 +1,3 @@
-import { create } from "domain";
-
 export const API_ENDPOINTS = {
   auth: {
     login: 'auth/login',
@@ -25,7 +23,7 @@ export const API_ENDPOINTS = {
     cancel: "reservations"
   },
   courses: {
-    list: "/courses",
+    list: "courses",
     create: "courses",
     update: "courses",
     delete: "courses"
