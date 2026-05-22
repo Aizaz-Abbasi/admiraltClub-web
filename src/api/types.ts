@@ -40,10 +40,13 @@ export interface Simulator {
 
 export interface TimeSlot {
   id: string;
-  startTime: string; // e.g., "08:00"
-  endTime: string; // e.g., "12:00"
-  label: string; // e.g., "8:00 AM - 12:00 PM"
+  startTime: string;
+  endTime: string;
+  label: string;
   isAvailable: boolean;
+  spotsTotal: number;
+  spotsUsed: number;
+  spotsAvailable: number;
   price?: number;
 }
 

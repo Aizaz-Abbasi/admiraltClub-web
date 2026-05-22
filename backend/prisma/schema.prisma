@@ -63,7 +63,7 @@ model DayPass {
   id          Int          @id @default(autoincrement())
   userId      Int
   status      String       @default("unused") // unused | used
-  bookingId   Int?         @unique
+  bookingId   Int?
   guestUserId Int?
   stripeId    String?
   createdAt   DateTime     @default(now())
@@ -82,7 +82,7 @@ model Reservation {
   createdAt   DateTime          @default(now())
   simulator   Simulator         @relation(fields: [simulatorId], references: [id])
   user        User              @relation(fields: [userId], references: [id])
-  dayPass     DayPass?
+  dayPasses   DayPass[]
 }
 
 model Course {
@@ -134,6 +134,7 @@ enum SimulatorStatus {
 
 enum MembershipType {
   MONTHLY
+  MONTHLY_PREMIUM
   YEARLY
   DAY_PASS
 }

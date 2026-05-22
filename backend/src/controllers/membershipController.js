@@ -11,6 +11,10 @@ const PLANS = {
     priceId: process.env.STRIPE_PRICE_MONTHLY,
     label: "Monthly Membership",
   },
+  MONTHLY_PREMIUM: {
+    priceId: process.env.STRIPE_PRICE_MONTHLY_PREMIUM,
+    label: "Monthly Premium Membership",
+  },
   YEARLY: {
     priceId: process.env.STRIPE_PRICE_YEARLY,
     label: "Annual Club Membership",
@@ -20,6 +24,7 @@ const PLANS = {
     label: "Day Pass",
   },
 };
+
 
 // ─── GET /membership/plans ────────────────────────────────────────────────────
 const getPlans = async (_req, res) => {
@@ -170,7 +175,20 @@ const createCheckoutSession = async (req, res) => {
     });
 
     if (existingMembership?.stripeCustomerId) {
-      stripeCustomerId = existingMembership.stripeCustomerId;
+      // Verify the customer still exists in the current Stripe account
+      try {
+        await stripe.customers.retrieve(existingMembership.stripeCustomerId);
+        stripeCustomerId = existingMembership.stripeCustomerId;
+      } catch (e) {
+        if (e.code !== "resource_missing") throw e;
+        // Customer doesn't exist in this Stripe account — create a fresh one
+        const customer = await stripe.customers.create({
+          email: user.email,
+          name: user.name,
+          metadata: { userId: String(user.id) },
+        });
+        stripeCustomerId = customer.id;
+      }
     } else {
       // For day pass buyers who have no membership, reuse customer if one exists in Stripe
       const existingCustomers = await stripe.customers.list({ email: user.email, limit: 1 });
@@ -601,6 +619,20 @@ const createGuestUser = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Cannot assign a guest to a past or ongoing booking.",
+      });
+    }
+
+    // Check the slot still has a free spot (max 4 per slot)
+    const MAX_SPOTS = 4;
+    const slotReservations = await prisma.reservation.findMany({
+      where: { simulatorId: booking.simulatorId, startTime: booking.startTime, status: "BOOKED" },
+      include: { dayPasses: { select: { id: true } } },
+    });
+    const spotsUsed = slotReservations.reduce((sum, r) => sum + 1 + r.dayPasses.length, 0);
+    if (spotsUsed >= MAX_SPOTS) {
+      return res.status(409).json({
+        success: false,
+        message: "This session is full. No more guest spots available.",
       });
     }
 

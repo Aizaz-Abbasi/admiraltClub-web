@@ -43,8 +43,11 @@ export async function fetchSlots(date: string, simulatorId: number) {
 
     return slots.map((s: any) => ({
         ...s,
-        id: s.slotIndex,           // satisfy existing id references
+        id: s.slotIndex,
         isAvailable: s.status === 'AVAILABLE',
+        spotsTotal: s.spotsTotal ?? 4,
+        spotsUsed: s.spotsUsed ?? 0,
+        spotsAvailable: s.spotsAvailable ?? 4,
     }));
 }
 

@@ -7,6 +7,14 @@ const prisma = new PrismaClient();
 // Each slot is 4 hours. Slots start at 00:00 and repeat every 4 hours.
 const SLOT_DURATION_HOURS = 4;
 const SLOT_START_HOURS = [0, 4, 8, 12, 16, 20]; // 6 slots per day per simulator
+const MAX_SPOTS = 4; // max players per slot
+
+// Max concurrent upcoming reservations per membership plan
+const CONCURRENT_LIMITS = {
+    MONTHLY: 1,
+    MONTHLY_PREMIUM: 3,
+    YEARLY: 3,
+};
 
 function generateDoorCode() {
     return Math.floor(1000 + Math.random() * 9000).toString();
@@ -76,24 +84,30 @@ const getSlots = async (req, res) => {
             },
             include: {
                 user: { select: { id: true, name: true } },
+                dayPasses: { select: { id: true } },
             },
         });
         const now = new Date();
         // Map each slot to its status
         const result = slots.map((slot, index) => {
             if (slot.endTime <= now) return null;
-            const reservation = existingReservations.find(
+            const reservationsForSlot = existingReservations.filter(
                 (r) => r.startTime.getTime() === slot.startTime.getTime()
             );
+            // Each reservation = 1 member spot + however many guest passes they added
+            const spotsUsed = reservationsForSlot.reduce((sum, r) => sum + 1 + r.dayPasses.length, 0);
+            const spotsAvailable = MAX_SPOTS - spotsUsed;
 
             return {
                 slotIndex: index,
                 startTime: slot.startTime,
                 endTime: slot.endTime,
                 label: `${String(SLOT_START_HOURS[index]).padStart(2, "0")}:00 – ${String(SLOT_START_HOURS[index] + SLOT_DURATION_HOURS).padStart(2, "0")}:00`,
-                status: reservation ? "BOOKED" : "AVAILABLE",
-                reservationId: reservation?.id ?? null,
-                bookedBy: reservation?.user ?? null,
+                status: spotsAvailable > 0 ? "AVAILABLE" : "FULL",
+                spotsTotal: MAX_SPOTS,
+                spotsUsed,
+                spotsAvailable,
+                bookedBy: reservationsForSlot.map((r) => r.user),
             };
         }).filter(Boolean);
 
@@ -165,19 +179,26 @@ const bookSlot = async (req, res) => {
         const slots = buildSlots(date);
         const { startTime, endTime } = slots[idx];
 
-        // Check if slot is already taken
-        const conflict = await prisma.reservation.findFirst({
-            where: {
-                simulatorId: simId,
-                startTime,
-                status: "BOOKED",
-            },
+        // Check spot availability
+        const existingForSlot = await prisma.reservation.findMany({
+            where: { simulatorId: simId, startTime, status: "BOOKED" },
+            include: { dayPasses: { select: { id: true } } },
         });
+        const spotsUsed = existingForSlot.reduce((sum, r) => sum + 1 + r.dayPasses.length, 0);
 
-        if (conflict) {
+        if (spotsUsed >= MAX_SPOTS) {
             return res.status(409).json({
                 success: false,
-                message: "This slot is already booked.",
+                message: "This slot is fully booked. No spots remaining.",
+            });
+        }
+
+        // Prevent the same member from booking the same slot twice
+        const alreadyBooked = existingForSlot.find((r) => r.userId === req.user.id);
+        if (alreadyBooked) {
+            return res.status(409).json({
+                success: false,
+                message: "You already have a booking for this time slot.",
             });
         }
 
@@ -187,6 +208,24 @@ const bookSlot = async (req, res) => {
                 success: false,
                 message: "Cannot book a slot in the past.",
             });
+        }
+
+        // Enforce concurrent reservation limit based on membership plan
+        const membership = await prisma.membership.findUnique({
+            where: { userId: req.user.id },
+            select: { type: true, status: true },
+        });
+        if (membership?.status === "active") {
+            const maxConcurrent = CONCURRENT_LIMITS[membership.type] ?? 1;
+            const upcomingCount = await prisma.reservation.count({
+                where: { userId: req.user.id, status: "BOOKED", startTime: { gt: new Date() } },
+            });
+            if (upcomingCount >= maxConcurrent) {
+                const msg = maxConcurrent === 1
+                    ? "Your plan allows only 1 active reservation at a time. Cancel your existing booking first."
+                    : `Your plan allows up to ${maxConcurrent} active reservations at a time.`;
+                return res.status(409).json({ success: false, message: msg });
+            }
         }
 
         const doorCode = generateDoorCode();

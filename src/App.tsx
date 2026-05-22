@@ -52,7 +52,7 @@ export function App({
 
   const hasActiveMembership =
     membership?.status === "active" &&
-    (membership?.type === "MONTHLY" || membership?.type === "YEARLY");
+    (membership?.type === "MONTHLY" || membership?.type === "MONTHLY_PREMIUM" || membership?.type === "YEARLY");
   // Admin always has full access; MONTHLY/YEARLY active membership grants member-level access
   const isActiveMember = isAdmin || hasActiveMembership;
   // A GUEST with no active membership is restricted to the guest tab set

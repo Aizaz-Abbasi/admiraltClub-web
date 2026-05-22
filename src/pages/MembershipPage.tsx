@@ -62,6 +62,7 @@ const statusColors: Record<string, string> = {
 
 const planLabels: Record<string, string> = {
   MONTHLY: 'Monthly Membership',
+  MONTHLY_PREMIUM: 'Monthly Premium Membership',
   YEARLY: 'Annual Club Membership',
 };
 
@@ -318,7 +319,7 @@ export function MembershipPage({ stripeSessionId }: MembershipPageProps) {
   };
 
   const isActiveMember = membership?.status === 'active' &&
-    (membership?.type === 'MONTHLY' || membership?.type === 'YEARLY');
+    (membership?.type === 'MONTHLY' || membership?.type === 'MONTHLY_PREMIUM' || membership?.type === 'YEARLY');
 
   // Scroll to Day Pass section after a Day Pass purchase
   useEffect(() => {
@@ -449,31 +450,34 @@ export function MembershipPage({ stripeSessionId }: MembershipPageProps) {
 
         {/* ── Plan cards ───────────────────────────────────────────────────── */}
         {!isActiveMember ? (
+          <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto mb-16">
 
-          /* No active membership → show Monthly + Yearly */
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-16">
-
-            {/* Monthly */}
+            {/* Monthly — $100 */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
               className="bg-navy-800 rounded-2xl shadow-2xl border border-navy-600 overflow-hidden flex flex-col relative">
               <div className="absolute top-0 right-0 bg-slate-200 text-navy-900 text-xs font-bold px-4 py-1 rounded-bl-lg uppercase tracking-wider">
                 Most Popular
               </div>
-              <div className="p-8 border-b border-navy-700 bg-navy-900/80">
-                <h3 className="text-2xl font-serif font-bold text-white mb-2">Monthly</h3>
-                <p className="text-slate-400 mb-6 text-sm">For the dedicated golfer seeking perfection.</p>
+              <div className="p-7 border-b border-navy-700 bg-navy-900/80">
+                <h3 className="text-2xl font-serif font-bold text-white mb-1">Monthly</h3>
+                <p className="text-slate-400 mb-5 text-sm">Unlimited play, one session at a time.</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-5xl font-bold text-white">{formatPrice(plans?.MONTHLY?.amount, plans?.MONTHLY?.currency)}</span>
                   <span className="text-slate-400 font-medium">/month</span>
                 </div>
               </div>
-              <div className="p-8 flex-1 flex flex-col">
-                <ul className="space-y-4 mb-8 flex-1 text-sm">
+              <div className="p-7 flex-1 flex flex-col">
+                <div className="mb-6 bg-navy-900/60 border border-navy-700 rounded-xl p-4">
+                  <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Reservations</p>
+                  <p className="text-white font-semibold text-sm">Unlimited use · <span className="text-gold-400">1 active at a time</span></p>
+                  <p className="text-xs text-slate-500 mt-1">Book a new session once your current one ends.</p>
+                </div>
+                <ul className="space-y-3 mb-8 flex-1 text-sm">
                   {features.map((f, i) => (
                     <li key={i} className="flex items-start gap-3">
                       {f.monthly
-                        ? <CheckIcon className="w-5 h-5 text-gold-500 shrink-0 mt-0.5" />
-                        : <div className="w-5 h-5 shrink-0 mt-0.5" />}
+                        ? <CheckIcon className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
+                        : <div className="w-4 h-4 shrink-0 mt-0.5" />}
                       <span className={f.monthly ? 'text-slate-200' : 'text-slate-600 line-through'}>{f.name}</span>
                     </li>
                   ))}
@@ -489,49 +493,95 @@ export function MembershipPage({ stripeSessionId }: MembershipPageProps) {
               </div>
             </motion.div>
 
-            {/* Yearly */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+            {/* Monthly Premium — $200 */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
               className="bg-navy-900 rounded-2xl shadow-[0_0_30px_rgba(201,168,76,0.15)] border-2 border-gold-500 overflow-hidden flex flex-col relative">
               <div className="absolute top-0 right-0 bg-gold-500 text-navy-900 text-xs font-bold px-4 py-1 rounded-bl-lg uppercase tracking-wider shadow-sm">
+                Most Flexible
+              </div>
+              <div className="p-7 border-b border-navy-800 bg-navy-900 relative overflow-hidden">
+                <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]" />
+                <h3 className="text-2xl font-serif font-bold text-gold-500 mb-1 relative z-10">Monthly Premium</h3>
+                <p className="text-slate-300 mb-5 text-sm relative z-10">Plan ahead with multiple reservations.</p>
+                <div className="flex items-baseline gap-2 relative z-10">
+                  <span className="text-5xl font-bold text-white drop-shadow-md">{formatPrice(plans?.MONTHLY_PREMIUM?.amount, plans?.MONTHLY_PREMIUM?.currency)}</span>
+                  <span className="text-slate-400 font-medium">/month</span>
+                </div>
+              </div>
+              <div className="p-7 flex-1 flex flex-col bg-navy-800">
+                <div className="mb-6 bg-navy-900/60 border border-gold-500/20 rounded-xl p-4">
+                  <p className="text-xs text-gold-400 uppercase tracking-wider mb-1">Reservations</p>
+                  <p className="text-white font-semibold text-sm">Unlimited use · <span className="text-gold-400">3 active at a time</span></p>
+                  <p className="text-xs text-slate-400 mt-1">Hold up to 3 upcoming sessions simultaneously.</p>
+                </div>
+                <ul className="space-y-3 mb-8 flex-1 text-sm">
+                  {features.map((f, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      {f.monthly
+                        ? <CheckIcon className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
+                        : <div className="w-4 h-4 shrink-0 mt-0.5" />}
+                      <span className={f.monthly ? 'text-white' : 'text-slate-600 line-through'}>{f.name}</span>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => handlePurchase('MONTHLY_PREMIUM')}
+                  disabled={planButtonDisabled('MONTHLY_PREMIUM')}
+                  className="w-full py-4 rounded-xl font-bold bg-gold-500 text-navy-900 hover:bg-gold-400 transition-colors shadow-[0_0_15px_rgba(201,168,76,0.3)] hover:shadow-[0_0_25px_rgba(201,168,76,0.5)] disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {loadingType === 'MONTHLY_PREMIUM' && <Loader2Icon className="w-4 h-4 animate-spin" />}
+                  {planButtonLabel('MONTHLY_PREMIUM', 'Select Premium')}
+                </button>
+              </div>
+            </motion.div>
+
+            {/* Yearly */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+              className="bg-navy-800 rounded-2xl shadow-2xl border border-navy-600 overflow-hidden flex flex-col relative">
+              <div className="absolute top-0 right-0 bg-slate-200 text-navy-900 text-xs font-bold px-4 py-1 rounded-bl-lg uppercase tracking-wider">
                 Best Value
               </div>
-              <div className="p-8 border-b border-navy-800 bg-navy-900 relative overflow-hidden">
-                <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]" />
-                <h3 className="text-2xl font-serif font-bold text-gold-500 mb-2 relative z-10">Annual Club Member</h3>
-                <p className="text-slate-300 mb-6 text-sm relative z-10">The ultimate Admiralty Club experience.</p>
-                <div className="flex items-baseline gap-2 relative z-10">
-                  <span className="text-5xl font-bold text-white drop-shadow-md">{formatPrice(plans?.YEARLY?.amount, plans?.YEARLY?.currency)}</span>
+              <div className="p-7 border-b border-navy-700 bg-navy-900/80">
+                <h3 className="text-2xl font-serif font-bold text-white mb-1">Annual</h3>
+                <p className="text-slate-400 mb-5 text-sm">The ultimate Admiralty Club experience.</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-5xl font-bold text-white">{formatPrice(plans?.YEARLY?.amount, plans?.YEARLY?.currency)}</span>
                   <span className="text-slate-400 font-medium">/year</span>
                 </div>
-                {plans?.MONTHLY?.amount && plans?.YEARLY?.amount && (
-                  <p className="text-gold-400 text-xs mt-2 font-medium relative z-10">
-                    Save {formatPrice(plans.MONTHLY.amount * 12 - plans.YEARLY.amount, plans.YEARLY.currency)} annually
+                {plans?.MONTHLY_PREMIUM?.amount && plans?.YEARLY?.amount && (
+                  <p className="text-gold-400 text-xs mt-2 font-medium">
+                    Save {formatPrice(plans.MONTHLY_PREMIUM.amount * 12 - plans.YEARLY.amount, plans.YEARLY.currency)} vs monthly premium
                   </p>
                 )}
               </div>
-              <div className="p-8 flex-1 flex flex-col bg-navy-800">
-                <ul className="space-y-4 mb-8 flex-1 text-sm">
+              <div className="p-7 flex-1 flex flex-col">
+                <div className="mb-6 bg-navy-900/60 border border-navy-700 rounded-xl p-4">
+                  <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Reservations</p>
+                  <p className="text-white font-semibold text-sm">Unlimited use · <span className="text-gold-400">3 active at a time</span></p>
+                  <p className="text-xs text-slate-500 mt-1">Hold up to 3 upcoming sessions simultaneously.</p>
+                </div>
+                <ul className="space-y-3 mb-8 flex-1 text-sm">
                   {features.map((f, i) => (
                     <li key={i} className="flex items-start gap-3">
                       {f.yearly
-                        ? <CheckIcon className="w-5 h-5 text-gold-500 shrink-0 mt-0.5" />
-                        : <div className="w-5 h-5 shrink-0 mt-0.5" />}
-                      <span className={f.yearly ? 'text-white' : 'text-slate-600 line-through'}>{f.name}</span>
+                        ? <CheckIcon className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
+                        : <div className="w-4 h-4 shrink-0 mt-0.5" />}
+                      <span className={f.yearly ? 'text-slate-200' : 'text-slate-600 line-through'}>{f.name}</span>
                     </li>
                   ))}
                 </ul>
                 <button
                   onClick={() => handlePurchase('YEARLY')}
                   disabled={planButtonDisabled('YEARLY')}
-                  className="w-full py-4 rounded-xl font-bold bg-gold-500 text-navy-900 hover:bg-gold-400 transition-colors shadow-[0_0_15px_rgba(201,168,76,0.3)] hover:shadow-[0_0_25px_rgba(201,168,76,0.5)] disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full py-4 rounded-xl font-medium bg-slate-200 text-navy-900 hover:bg-white transition-colors shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {loadingType === 'YEARLY' && <Loader2Icon className="w-4 h-4 animate-spin" />}
                   {planButtonLabel('YEARLY', 'Apply for Annual')}
                 </button>
               </div>
             </motion.div>
-          </div>
 
+          </div>
         ) : null}
 
         {/* ── Day Pass section — visible to active members ──────────────────── */}

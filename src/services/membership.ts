@@ -1,6 +1,6 @@
 import { apiGet, apiPost } from '../api';
 
-export type MembershipType = 'MONTHLY' | 'YEARLY' | 'DAY_PASS';
+export type MembershipType = 'MONTHLY' | 'MONTHLY_PREMIUM' | 'YEARLY' | 'DAY_PASS';
 
 export interface Membership {
     id: number;
@@ -53,6 +53,7 @@ export interface Plan {
 
 export interface PlansResponse {
     MONTHLY: Plan;
+    MONTHLY_PREMIUM: Plan;
     YEARLY: Plan;
     DAY_PASS: Plan;
 }
