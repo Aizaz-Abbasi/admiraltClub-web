@@ -10,12 +10,17 @@ import {
   ChevronLeftIcon,
   KeyIcon,
   ShieldCheckIcon,
+  UsersIcon,
+  PlusIcon,
+  MinusIcon,
+  Loader2Icon,
 } from 'lucide-react';
 import { Location, Simulator, TimeSlot } from '../api';
 import { fetchLocations } from '../services/location';
 import { useQuery } from '@tanstack/react-query';
 import { fetchSimulators } from '../services/simulator';
 import { bookSlot, fetchSlots } from '../services/bookig';
+import { createCheckoutSession } from '../services/membership';
 
 interface BookingPageProps {
   canBook?: boolean;
@@ -65,8 +70,11 @@ export function BookingPage({ canBook = true }: BookingPageProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [doorCode, setDoorCode] = useState('');
+  const [reservationId, setReservationId] = useState<number | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
-  console.log("selectedSlot", selectedSlot);
+  const [guestCount, setGuestCount] = useState(0);
+  const [guestCheckoutLoading, setGuestCheckoutLoading] = useState(false);
+  const [guestCheckoutError, setGuestCheckoutError] = useState<string | null>(null);
 
   //
   const {
@@ -150,6 +158,7 @@ export function BookingPage({ canBook = true }: BookingPageProps) {
           selectedSlot?.id ?? "0"   // make sure TimeSlot type has slotIndex
         );
         setDoorCode(reservation.doorCode);
+        setReservationId(reservation.id);
         setIsConfirmed(true);
       } catch (e: any) {
         console.log("e.message ", e.message);
@@ -436,6 +445,87 @@ export function BookingPage({ canBook = true }: BookingPageProps) {
             </p>
           </div>
 
+          {/* Guest Pass Section */}
+          {(() => {
+            // spotsAvailable was the count BEFORE the member booked; subtract 1 for their spot
+            const maxGuests = Math.min(3, Math.max(0, (selectedSlot?.spotsAvailable ?? 1) - 1));
+            if (maxGuests === 0) {
+              return (
+                <div className="bg-navy-800 rounded-2xl border border-amber-700/50 p-6 text-left">
+                  <div className="flex items-start gap-3">
+                    <UsersIcon className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-amber-300 text-sm mb-1">No Guest Spots Available</p>
+                      <p className="text-sm text-slate-400">
+                        This slot was fully booked when you reserved your bay. Guest passes cannot be added — the maximum of 4 players has been reached.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <div className="bg-navy-800 rounded-2xl border border-navy-700 p-6 text-left space-y-4">
+                <div className="flex items-center gap-3 mb-1">
+                  <UsersIcon className="w-5 h-5 text-gold-500" />
+                  <h3 className="font-serif font-bold text-white text-lg">Bring Guests?</h3>
+                </div>
+                <p className="text-sm text-slate-400">
+                  Add up to {maxGuests} guest day {maxGuests === 1 ? 'pass' : 'passes'} for this booking.
+                </p>
+                <div className="flex items-center justify-between bg-navy-900 rounded-xl border border-navy-700 px-4 py-3">
+                  <span className="text-white font-medium">Guest passes</span>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setGuestCount((c) => Math.max(0, c - 1))}
+                      disabled={guestCount === 0}
+                      className="w-8 h-8 rounded-full border border-navy-600 flex items-center justify-center text-slate-300 hover:border-gold-500 hover:text-gold-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <MinusIcon className="w-4 h-4" />
+                    </button>
+                    <span className="text-white font-bold w-4 text-center">{guestCount}</span>
+                    <button
+                      onClick={() => setGuestCount((c) => Math.min(maxGuests, c + 1))}
+                      disabled={guestCount >= maxGuests}
+                      className="w-8 h-8 rounded-full border border-navy-600 flex items-center justify-center text-slate-300 hover:border-gold-500 hover:text-gold-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <PlusIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                {guestCheckoutError && (
+                  <p className="text-sm text-red-400 bg-red-950/30 border border-red-500/30 rounded-xl px-4 py-3">
+                    {guestCheckoutError}
+                  </p>
+                )}
+                <button
+                  onClick={async () => {
+                    if (!guestCount || !reservationId) return;
+                    setGuestCheckoutLoading(true);
+                    setGuestCheckoutError(null);
+                    try {
+                      const url = await createCheckoutSession('DAY_PASS', guestCount, reservationId);
+                      window.location.href = url;
+                    } catch (e: any) {
+                      const msg = e?.response?.data?.message || e?.message || 'Could not start checkout. Please try again.';
+                      setGuestCheckoutError(msg);
+                    } finally {
+                      setGuestCheckoutLoading(false);
+                    }
+                  }}
+                  disabled={guestCount === 0 || guestCheckoutLoading}
+                  className="w-full py-3 rounded-xl font-bold bg-gold-500 text-navy-900 hover:bg-gold-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(201,168,76,0.3)]"
+                >
+                  {guestCheckoutLoading ? (
+                    <><Loader2Icon className="w-4 h-4 animate-spin" /> Processing...</>
+                  ) : (
+                    <>Purchase {guestCount > 0 ? `${guestCount} ` : ''}Guest {guestCount === 1 ? 'Pass' : 'Passes'}</>
+                  )}
+                </button>
+              </div>
+            );
+          })()}
+
           <button
             onClick={() => {
               setStep(1);
@@ -444,6 +534,9 @@ export function BookingPage({ canBook = true }: BookingPageProps) {
               setSelectedDate('');
               setSelectedSlot(null);
               setIsConfirmed(false);
+              setGuestCount(0);
+              setReservationId(null);
+              setGuestCheckoutError(null);
             }}
             className="w-full py-4 rounded-xl font-bold border border-navy-600 text-white hover:bg-navy-800 transition-colors"
           >

@@ -13,7 +13,7 @@ const MAX_SPOTS = 4; // max players per slot
 const CONCURRENT_LIMITS = {
     MONTHLY: 1,
     MONTHLY_PREMIUM: 3,
-    YEARLY: 3,
+    YEARLY: 1,
 };
 
 function generateDoorCode() {
@@ -210,22 +210,29 @@ const bookSlot = async (req, res) => {
             });
         }
 
-        // Enforce concurrent reservation limit based on membership plan
+        // Require an active paid membership (MONTHLY, MONTHLY_PREMIUM, or YEARLY) to book
         const membership = await prisma.membership.findUnique({
             where: { userId: req.user.id },
             select: { type: true, status: true },
         });
-        if (membership?.status === "active") {
-            const maxConcurrent = CONCURRENT_LIMITS[membership.type] ?? 1;
-            const upcomingCount = await prisma.reservation.count({
-                where: { userId: req.user.id, status: "BOOKED", startTime: { gt: new Date() } },
+        const BOOKABLE_PLANS = ["MONTHLY", "MONTHLY_PREMIUM", "YEARLY"];
+        if (!membership || membership.status !== "active" || !BOOKABLE_PLANS.includes(membership.type)) {
+            return res.status(403).json({
+                success: false,
+                message: "An active membership is required to book a simulator bay. Please purchase a Monthly or Annual plan to get started.",
             });
-            if (upcomingCount >= maxConcurrent) {
-                const msg = maxConcurrent === 1
-                    ? "Your plan allows only 1 active reservation at a time. Cancel your existing booking first."
-                    : `Your plan allows up to ${maxConcurrent} active reservations at a time.`;
-                return res.status(409).json({ success: false, message: msg });
-            }
+        }
+
+        // Enforce concurrent reservation limit based on membership plan
+        const maxConcurrent = CONCURRENT_LIMITS[membership.type] ?? 1;
+        const upcomingCount = await prisma.reservation.count({
+            where: { userId: req.user.id, status: "BOOKED", startTime: { gt: new Date() } },
+        });
+        if (upcomingCount >= maxConcurrent) {
+            const msg = maxConcurrent === 1
+                ? "Your plan allows only 1 active reservation at a time. Cancel your existing booking first."
+                : `Your plan allows up to ${maxConcurrent} active reservations at a time.`;
+            return res.status(409).json({ success: false, message: msg });
         }
 
         const doorCode = generateDoorCode();

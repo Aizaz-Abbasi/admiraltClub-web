@@ -73,8 +73,8 @@ export async function fetchMyDayPasses(): Promise<DayPass[]> {
     return res.dayPasses;
 }
 
-export async function createCheckoutSession(type: MembershipType): Promise<string> {
-    const res = await apiPost<{ success: boolean; url: string }>('membership/checkout', { type });
+export async function createCheckoutSession(type: MembershipType, quantity = 1, bookingId?: number): Promise<string> {
+    const res = await apiPost<{ success: boolean; url: string }>('membership/checkout', { type, quantity, bookingId });
     return res.url;
 }
 

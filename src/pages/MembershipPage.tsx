@@ -84,7 +84,7 @@ interface DayPassFormProps {
 }
 
 function DayPassForm({ dayPass, futureBookings, onSuccess }: DayPassFormProps) {
-  const [bookingId, setBookingId] = useState<number | ''>('');
+  const [bookingId, setBookingId] = useState<number | ''>(dayPass.bookingId ?? '');
   const [guestName, setGuestName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -557,8 +557,8 @@ export function MembershipPage({ stripeSessionId }: MembershipPageProps) {
               <div className="p-7 flex-1 flex flex-col">
                 <div className="mb-6 bg-navy-900/60 border border-navy-700 rounded-xl p-4">
                   <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Reservations</p>
-                  <p className="text-white font-semibold text-sm">Unlimited use · <span className="text-gold-400">3 active at a time</span></p>
-                  <p className="text-xs text-slate-500 mt-1">Hold up to 3 upcoming sessions simultaneously.</p>
+                  <p className="text-white font-semibold text-sm">Unlimited use · <span className="text-gold-400">1 active at a time</span></p>
+                  <p className="text-xs text-slate-500 mt-1">Book a new session once your current one ends.</p>
                 </div>
                 <ul className="space-y-3 mb-8 flex-1 text-sm">
                   {features.map((f, i) => (

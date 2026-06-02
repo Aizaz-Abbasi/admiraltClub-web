@@ -154,7 +154,7 @@ const getMyDayPasses = async (req, res) => {
 // ─── POST /membership/checkout ────────────────────────────────────────────────
 const createCheckoutSession = async (req, res) => {
   try {
-    const { type } = req.body; // MONTHLY | YEARLY | DAY_PASS
+    const { type, quantity = 1, bookingId } = req.body; // MONTHLY | YEARLY | DAY_PASS
 
     if (!PLANS[type]) {
       return res
@@ -215,7 +215,33 @@ const createCheckoutSession = async (req, res) => {
         });
     }
 
-    const lineItems = [{ price: plan.priceId, quantity: 1 }];
+    let dayPassQty = type === "DAY_PASS" ? Math.min(Math.max(1, Number(quantity)), 3) : 1;
+
+    // If purchasing day passes for a specific booking, enforce remaining spot limit
+    if (type === "DAY_PASS" && bookingId) {
+      const MAX_SPOTS = 4;
+      const booking = await prisma.reservation.findFirst({
+        where: { id: Number(bookingId), userId: req.user.id, status: "BOOKED" },
+      });
+      if (!booking) {
+        return res.status(404).json({ success: false, message: "Booking not found." });
+      }
+      const slotReservations = await prisma.reservation.findMany({
+        where: { simulatorId: booking.simulatorId, startTime: booking.startTime, status: "BOOKED" },
+        include: { dayPasses: { select: { id: true } } },
+      });
+      const spotsUsed = slotReservations.reduce((sum, r) => sum + 1 + r.dayPasses.length, 0);
+      const spotsLeft = MAX_SPOTS - spotsUsed;
+      if (spotsLeft <= 0) {
+        return res.status(409).json({
+          success: false,
+          message: "This slot is fully booked. No guest spots remaining.",
+        });
+      }
+      dayPassQty = Math.min(dayPassQty, spotsLeft);
+    }
+
+    const lineItems = [{ price: plan.priceId, quantity: type === "DAY_PASS" ? dayPassQty : 1 }];
 
     const session = await stripe.checkout.sessions.create({
       customer: stripeCustomerId,
@@ -227,6 +253,8 @@ const createCheckoutSession = async (req, res) => {
       metadata: {
         userId: String(user.id),
         membershipType: type,
+        ...(type === "DAY_PASS" && { dayPassQuantity: String(lineItems[0].quantity) }),
+        ...(type === "DAY_PASS" && bookingId && { bookingId: String(bookingId) }),
       },
     });
 
@@ -268,13 +296,18 @@ const handleWebhook = async (req, res) => {
         const paymentStripeId = session.payment_intent ?? session.id;
 
         if (membershipType === "DAY_PASS") {
-          // Day Pass → create an individual DayPass record (not a Membership)
-          const exists = await prisma.dayPass.findFirst({
-            where: { stripeId: paymentStripeId },
-          });
-          if (!exists) {
-            await prisma.dayPass.create({
-              data: { userId, stripeId: paymentStripeId },
+          const dayPassQuantity = Number(session.metadata.dayPassQuantity ?? 1);
+          const dayPassBookingId = session.metadata.bookingId ? Number(session.metadata.bookingId) : null;
+          // Idempotent: only create passes not yet recorded for this payment
+          const existingCount = await prisma.dayPass.count({ where: { stripeId: paymentStripeId } });
+          const toCreate = dayPassQuantity - existingCount;
+          if (toCreate > 0) {
+            await prisma.dayPass.createMany({
+              data: Array.from({ length: toCreate }, () => ({
+                userId,
+                stripeId: paymentStripeId,
+                ...(dayPassBookingId && { bookingId: dayPassBookingId }),
+              })),
             });
           }
         } else {
@@ -460,13 +493,19 @@ const verifySession = async (req, res) => {
     const paymentStripeId = session.payment_intent ?? session.id;
 
     if (membershipType === "DAY_PASS") {
-      // Idempotent: return existing DayPass if already created by webhook
-      let dayPass = await prisma.dayPass.findFirst({
-        where: { stripeId: paymentStripeId },
-      });
-      if (!dayPass) {
-        dayPass = await prisma.dayPass.create({
-          data: { userId: req.user.id, stripeId: paymentStripeId },
+      const dayPassQuantity = Number(session.metadata?.dayPassQuantity ?? 1);
+      const dayPassBookingId = session.metadata?.bookingId ? Number(session.metadata.bookingId) : null;
+
+      // Idempotent: only create passes not yet recorded by the webhook
+      const existingCount = await prisma.dayPass.count({ where: { stripeId: paymentStripeId } });
+      const toCreate = dayPassQuantity - existingCount;
+      if (toCreate > 0) {
+        await prisma.dayPass.createMany({
+          data: Array.from({ length: toCreate }, () => ({
+            userId: req.user.id,
+            stripeId: paymentStripeId,
+            ...(dayPassBookingId && { bookingId: dayPassBookingId }),
+          })),
         });
         await logPayment({
           userId: req.user.id,
@@ -476,6 +515,7 @@ const verifySession = async (req, res) => {
           stripeId: paymentStripeId,
         });
       }
+      const dayPass = await prisma.dayPass.findFirst({ where: { stripeId: paymentStripeId } });
       return res
         .status(200)
         .json({ success: true, purchaseType: "DAY_PASS", dayPass });
@@ -622,18 +662,22 @@ const createGuestUser = async (req, res) => {
       });
     }
 
-    // Check the slot still has a free spot (max 4 per slot)
-    const MAX_SPOTS = 4;
-    const slotReservations = await prisma.reservation.findMany({
-      where: { simulatorId: booking.simulatorId, startTime: booking.startTime, status: "BOOKED" },
-      include: { dayPasses: { select: { id: true } } },
-    });
-    const spotsUsed = slotReservations.reduce((sum, r) => sum + 1 + r.dayPasses.length, 0);
-    if (spotsUsed >= MAX_SPOTS) {
-      return res.status(409).json({
-        success: false,
-        message: "This session is full. No more guest spots available.",
+    // Only need a free spot if this pass isn't already pre-linked to this booking.
+    // If bookingId is already set (pass was purchased from the booking confirmation screen),
+    // the spot is already reserved and counted — no new spot is being claimed.
+    if (dayPass.bookingId !== booking.id) {
+      const MAX_SPOTS = 4;
+      const slotReservations = await prisma.reservation.findMany({
+        where: { simulatorId: booking.simulatorId, startTime: booking.startTime, status: "BOOKED" },
+        include: { dayPasses: { select: { id: true } } },
       });
+      const spotsUsed = slotReservations.reduce((sum, r) => sum + 1 + r.dayPasses.length, 0);
+      if (spotsUsed >= MAX_SPOTS) {
+        return res.status(409).json({
+          success: false,
+          message: "This session is full. No more guest spots available.",
+        });
+      }
     }
 
     // Reject if email belongs to a non-GUEST account
