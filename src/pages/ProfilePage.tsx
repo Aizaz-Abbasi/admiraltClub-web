@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import React, { useState, useRef } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import {
   CameraIcon,
   UploadCloudIcon,
@@ -8,30 +8,30 @@ import {
   UserIcon,
   Loader2Icon,
   AlertCircleIcon,
-} from 'lucide-react';
-import { API_BASE_URL, getApiErrorMessage } from '../api/client';
+} from "lucide-react";
+import { API_BASE_URL, getApiErrorMessage } from "../api/client";
 import {
   fetchProfile,
   updateProfile,
   uploadProfilePicture,
   uploadDrivingLicense,
   type UserProfile,
-} from '../services/profile';
+} from "../services/profile";
 
 // Strip trailing /api/ to get the storage base for file paths
 // e.g. "http://localhost:5000/api/" → "http://localhost:5000"
-const STORAGE_BASE = API_BASE_URL.replace(/\/api\/?$/, '');
+const STORAGE_BASE = API_BASE_URL.replace(/\/api\/?$/, "");
 
-type Toast = { message: string; type: 'success' | 'error' };
+type Toast = { message: string; type: "success" | "error" };
 
 export function ProfilePage() {
   const queryClient = useQueryClient();
 
-  const [formData, setFormData] = useState({ name: '', phone: '', age: '' });
+  const [formData, setFormData] = useState({ name: "", phone: "", age: "" });
 
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
   const [licensePreview, setLicensePreview] = useState<string | null>(null);
-  const [licenseName, setLicenseName] = useState('');
+  const [licenseName, setLicenseName] = useState("");
 
   const [toast, setToast] = useState<Toast | null>(null);
 
@@ -41,17 +41,27 @@ export function ProfilePage() {
   // Ensures formData is seeded from server exactly once
   const seeded = useRef(false);
 
-  const showToast = (message: string, type: Toast['type'] = 'success') => {
+  const showToast = (message: string, type: Toast["type"] = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
   };
 
-  const serverSrc = (path: string | null): string | null =>
-    path ? `${STORAGE_BASE}${path}` : null;
+  const serverSrc = (path: string | null): string | null => {
+    if (!path) return null;
+    // New uploads are full Spaces CDN URLs; old paths are relative (legacy)
+    if (path.startsWith("http://") || path.startsWith("https://")) return path;
+    return `${STORAGE_BASE}${path}`;
+  };
 
   // ── 1. Fetch profile ──────────────────────────────────────────────────────
-  const { data: profile, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['profile'],
+  const {
+    data: profile,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["profile"],
     queryFn: fetchProfile,
     staleTime: 0,
   });
@@ -60,32 +70,37 @@ export function ProfilePage() {
   if (profile && !seeded.current) {
     seeded.current = true;
     setFormData({
-      name: profile.name ?? '',
-      phone: profile.phone ?? '',
-      age: profile.age != null ? String(profile.age) : '',
+      name: profile.name ?? "",
+      phone: profile.phone ?? "",
+      age: profile.age != null ? String(profile.age) : "",
     });
   }
 
   // ── 2. Save name / phone ──────────────────────────────────────────────────
   const saveMutation = useMutation({
-    mutationFn: () => updateProfile({ name: formData.name, phone: formData.phone, age: formData.age }),
+    mutationFn: () =>
+      updateProfile({
+        name: formData.name,
+        phone: formData.phone,
+        age: formData.age,
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
-      showToast('Profile saved successfully!');
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      showToast("Profile saved successfully!");
     },
-    onError: (err) => showToast(getApiErrorMessage(err), 'error'),
+    onError: (err) => showToast(getApiErrorMessage(err), "error"),
   });
 
   // ── 3. Profile picture ────────────────────────────────────────────────────
   const pictureMutation = useMutation({
     mutationFn: (file: File) => uploadProfilePicture(file),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
-      showToast('Profile picture updated!');
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      showToast("Profile picture updated!");
     },
     onError: (err) => {
       setProfilePreview(null);
-      showToast(getApiErrorMessage(err), 'error');
+      showToast(getApiErrorMessage(err), "error");
     },
   });
 
@@ -93,13 +108,13 @@ export function ProfilePage() {
   const licenseMutation = useMutation({
     mutationFn: (file: File) => uploadDrivingLicense(file),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
-      showToast('Driving license uploaded!');
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      showToast("Driving license uploaded!");
     },
     onError: (err) => {
       setLicensePreview(null);
-      setLicenseName('');
-      showToast(getApiErrorMessage(err), 'error');
+      setLicenseName("");
+      showToast(getApiErrorMessage(err), "error");
     },
   });
 
@@ -146,56 +161,74 @@ export function ProfilePage() {
   }
 
   // Optimistic preview takes priority, then fall back to server path
-  const displayProfileImage = profilePreview ?? serverSrc(profile?.profilePicture ?? null);
-  const displayLicenseImage = licensePreview ?? serverSrc(profile?.drivingLicense ?? null);
-  const displayLicenseName = licenseName || profile?.drivingLicense?.split('/').pop() || '';
+  const displayProfileImage =
+    profilePreview ?? serverSrc(profile?.profilePicture ?? null);
+  const displayLicenseImage =
+    licensePreview ?? serverSrc(profile?.drivingLicense ?? null);
+  const displayLicenseName =
+    licenseName || profile?.drivingLicense?.split("/").pop() || "";
 
-  const isErrorToast = toast?.type === 'error';
+  const isErrorToast = toast?.type === "error";
   const isSaving = saveMutation.isPending;
 
   return (
     <div className="min-h-screen bg-transparent py-12 px-4 sm:px-6 lg:px-8 relative">
-
       {/* ── Toast ── */}
       <motion.div
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: toast ? 1 : 0, y: toast ? 0 : -50 }}
         className={`fixed top-24 left-1/2 -translate-x-1/2 z-50 border px-4 py-3 rounded-lg
           shadow-lg flex items-center gap-3 pointer-events-none backdrop-blur-sm
-          ${isErrorToast
-            ? 'bg-red-900/90 border-red-500/50 text-red-100'
-            : 'bg-green-900/90 border-green-500/50 text-green-100'}`}
+          ${
+            isErrorToast
+              ? "bg-red-900/90 border-red-500/50 text-red-100"
+              : "bg-green-900/90 border-green-500/50 text-green-100"
+          }`}
       >
-        {isErrorToast
-          ? <AlertCircleIcon className="w-5 h-5 text-red-400" />
-          : <CheckCircleIcon className="w-5 h-5 text-green-400" />}
+        {isErrorToast ? (
+          <AlertCircleIcon className="w-5 h-5 text-red-400" />
+        ) : (
+          <CheckCircleIcon className="w-5 h-5 text-green-400" />
+        )}
         <span className="font-medium text-sm">{toast?.message}</span>
       </motion.div>
 
       <div className="max-w-3xl mx-auto">
         <div className="mb-10">
-          <h1 className="text-3xl md:text-4xl font-serif font-bold text-white mb-2">My Profile</h1>
-          <p className="text-slate-400">Manage your personal information and documents.</p>
+          <h1 className="text-3xl md:text-4xl font-serif font-bold text-white mb-2">
+            My Profile
+          </h1>
+          <p className="text-slate-400">
+            Manage your personal information and documents.
+          </p>
         </div>
 
         <div className="bg-navy-800 rounded-3xl shadow-2xl border border-navy-700 overflow-hidden">
-
           {/* Banner */}
           <div className="h-32 bg-navy-900 relative border-b border-navy-700">
             <div className="absolute inset-0 opacity-30 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] mix-blend-overlay" />
           </div>
 
           <form
-            onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(); }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              saveMutation.mutate();
+            }}
             className="p-8 pt-0"
           >
             {/* ── Avatar ── */}
             <div className="relative -mt-16 mb-8 flex justify-center sm:justify-start sm:ml-8">
               <div className="relative">
                 <div className="w-32 h-32 rounded-full border-4 border-navy-800 bg-navy-900 shadow-lg overflow-hidden flex items-center justify-center">
-                  {displayProfileImage
-                    ? <img src={displayProfileImage} alt="Profile" className="w-full h-full object-cover" />
-                    : <UserIcon className="w-16 h-16 text-slate-600" />}
+                  {displayProfileImage ? (
+                    <img
+                      src={displayProfileImage}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <UserIcon className="w-16 h-16 text-slate-600" />
+                  )}
                   {pictureMutation.isPending && (
                     <div className="absolute inset-0 bg-navy-900/60 flex items-center justify-center">
                       <Loader2Icon className="w-6 h-6 text-gold-500 animate-spin" />
@@ -212,32 +245,39 @@ export function ProfilePage() {
                   <CameraIcon className="w-5 h-5" />
                 </button>
                 <input
-                  type="file" ref={profileInputRef}
-                  onChange={handleProfileImageChange} accept="image/*" className="hidden"
+                  type="file"
+                  ref={profileInputRef}
+                  onChange={handleProfileImageChange}
+                  accept="image/*"
+                  className="hidden"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-
               {/* ── Personal info ── */}
               <div className="space-y-6">
                 <h3 className="text-lg font-serif font-bold text-white border-b border-navy-700 pb-2">
                   Personal Details
                 </h3>
 
-                {([
-                  { label: 'Full Name', name: 'name', type: 'text' },
-                  { label: 'Phone', name: 'phone', type: 'tel' },
-                  { label: 'Age', name: 'age', type: 'number' },
-                ] as const).map(({ label, name, type }) => (
+                {(
+                  [
+                    { label: "Full Name", name: "name", type: "text" },
+                    { label: "Phone", name: "phone", type: "tel" },
+                    { label: "Age", name: "age", type: "number" },
+                  ] as const
+                ).map(({ label, name, type }) => (
                   <div key={name} className="space-y-1">
-                    <label className="text-sm font-medium text-slate-300 block">{label}</label>
+                    <label className="text-sm font-medium text-slate-300 block">
+                      {label}
+                    </label>
                     <input
-                      type={type} name={name}
+                      type={type}
+                      name={name}
                       value={formData[name]}
                       onChange={handleChange}
-                      {...(name === 'age' ? { min: 18, max: 100 } : {})}
+                      {...(name === "age" ? { min: 18, max: 100 } : {})}
                       className="block w-full px-4 py-3 border border-navy-600 rounded-xl text-sm
         focus:ring-gold-500 focus:border-gold-500 bg-navy-900 text-white
         outline-none transition-colors shadow-inner"
@@ -246,15 +286,19 @@ export function ProfilePage() {
                 ))}
                 {/* Email — read-only, always from server */}
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-300 block">Email Address</label>
+                  <label className="text-sm font-medium text-slate-300 block">
+                    Email Address
+                  </label>
                   <input
                     type="email"
-                    value={profile?.email ?? ''}
+                    value={profile?.email ?? ""}
                     disabled
                     className="block w-full px-4 py-3 border border-navy-700 rounded-xl text-sm
                       bg-navy-900/50 text-slate-500 cursor-not-allowed shadow-inner"
                   />
-                  <p className="text-xs text-slate-500 mt-1">Email cannot be changed.</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Email cannot be changed.
+                  </p>
                 </div>
               </div>
 
@@ -265,19 +309,26 @@ export function ProfilePage() {
                 </h3>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300 block">Driving License</label>
+                  <label className="text-sm font-medium text-slate-300 block">
+                    Driving License
+                  </label>
                   <p className="text-xs text-slate-400 mb-3">
                     Required for age verification and liability purposes.
                   </p>
 
                   <div
-                    onClick={() => !licenseMutation.isPending && licenseInputRef.current?.click()}
+                    onClick={() =>
+                      !licenseMutation.isPending &&
+                      licenseInputRef.current?.click()
+                    }
                     className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center
                       justify-center text-center transition-colors relative
-                      ${licenseMutation.isPending ? 'cursor-wait opacity-70' : 'cursor-pointer'}
-                      ${displayLicenseImage
-                        ? 'border-gold-500 bg-gold-500/5'
-                        : 'border-navy-600 bg-navy-900 hover:bg-navy-800 hover:border-navy-500'}`}
+                      ${licenseMutation.isPending ? "cursor-wait opacity-70" : "cursor-pointer"}
+                      ${
+                        displayLicenseImage
+                          ? "border-gold-500 bg-gold-500/5"
+                          : "border-navy-600 bg-navy-900 hover:bg-navy-800 hover:border-navy-500"
+                      }`}
                   >
                     {licenseMutation.isPending && (
                       <div className="absolute inset-0 flex items-center justify-center bg-navy-900/50 rounded-xl z-10">
@@ -297,21 +348,30 @@ export function ProfilePage() {
                         <p className="text-sm font-medium text-white truncate max-w-[200px]">
                           {displayLicenseName}
                         </p>
-                        <p className="text-xs text-gold-500 mt-1 font-medium">Click to replace</p>
+                        <p className="text-xs text-gold-500 mt-1 font-medium">
+                          Click to replace
+                        </p>
                       </>
                     ) : (
                       <>
                         <div className="w-12 h-12 rounded-full bg-navy-800 border border-navy-700 shadow-sm flex items-center justify-center mb-3 text-slate-400">
                           <UploadCloudIcon className="w-6 h-6" />
                         </div>
-                        <p className="text-sm font-medium text-slate-300">Click to upload license</p>
-                        <p className="text-xs text-slate-500 mt-1">PNG, JPG up to 5MB</p>
+                        <p className="text-sm font-medium text-slate-300">
+                          Click to upload license
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          PNG, JPG up to 5MB
+                        </p>
                       </>
                     )}
                   </div>
                   <input
-                    type="file" ref={licenseInputRef}
-                    onChange={handleLicenseChange} accept="image/*" className="hidden"
+                    type="file"
+                    ref={licenseInputRef}
+                    onChange={handleLicenseChange}
+                    accept="image/*"
+                    className="hidden"
                   />
                 </div>
               </div>
@@ -330,7 +390,7 @@ export function ProfilePage() {
                   disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isSaving && <Loader2Icon className="w-4 h-4 animate-spin" />}
-                {isSaving ? 'Saving…' : 'Save Profile'}
+                {isSaving ? "Saving…" : "Save Profile"}
               </button>
             </div>
           </form>
@@ -339,7 +399,6 @@ export function ProfilePage() {
     </div>
   );
 }
-
 
 // import React, { useState, useRef } from 'react';
 // import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

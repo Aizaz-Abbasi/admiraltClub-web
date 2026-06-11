@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { PrismaClient } = require("@prisma/client");
 const { sendPasswordResetEmail } = require("../services/emailService");
+const { uploadToSpaces } = require("../services/spaces");
 const prisma = new PrismaClient();
 
 const register = async (req, res) => {
@@ -173,24 +174,22 @@ const updateProfile = async (req, res) => {
   }
 };
 
-// Add these to src/controllers/authController.js
-const path = require("path");
-
 const uploadProfilePicture = async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
 
-    const filePath = `/uploads/profiles/${req.file.filename}`;
+    const url = await uploadToSpaces(req.file, "profiles");
 
     await prisma.user.update({
       where: { id: req.user.id },
-      data: { profilePicture: filePath },
+      data: { profilePicture: url },
     });
 
-    res.json({ message: "Profile picture updated", path: filePath });
+    res.json({ message: "Profile picture updated", path: url });
   } catch (err) {
+    console.error("Profile picture upload error:", err);
     res.status(500).json({ error: "Upload failed" });
   }
 };
@@ -201,15 +200,16 @@ const uploadDrivingLicense = async (req, res) => {
       return res.status(400).json({ error: "No file uploaded" });
     }
 
-    const filePath = `/uploads/licenses/${req.file.filename}`;
+    const url = await uploadToSpaces(req.file, "licenses");
 
     await prisma.user.update({
       where: { id: req.user.id },
-      data: { drivingLicense: filePath },
+      data: { drivingLicense: url },
     });
 
-    res.json({ message: "Driving license uploaded", path: filePath });
+    res.json({ message: "Driving license uploaded", path: url });
   } catch (err) {
+    console.error("Driving license upload error:", err);
     res.status(500).json({ error: "Upload failed" });
   }
 };

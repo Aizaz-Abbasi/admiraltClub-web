@@ -13,6 +13,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1067.0",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^6.19.2",
     "@sendgrid/mail": "^8.1.6",
