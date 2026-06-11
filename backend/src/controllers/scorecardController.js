@@ -18,7 +18,7 @@ const createScore = async (req, res) => {
       });
       const isActive =
         membership?.status === 'active' &&
-        (membership?.type === 'MONTHLY' || membership?.type === 'YEARLY');
+        (membership?.type === 'MONTHLY' || membership?.type === 'MONTHLY_PREMIUM' || membership?.type === 'YEARLY');
       if (!isActive) {
         return res.status(403).json({ success: false, message: 'An active membership is required to add scores.' });
       }
