@@ -10,6 +10,7 @@ const {
   updateProfile,
   forgotPassword,
   resetPassword,
+  deleteAccount,
 } = require("../controllers/authController");
 const authenticate = require("../middleware/authenticate");
 const upload = require("../middleware/upload");
@@ -214,5 +215,7 @@ router.patch("/profile", authenticate, updateProfile);
 
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
+
+router.delete("/account", authenticate, deleteAccount);
 
 module.exports = router;

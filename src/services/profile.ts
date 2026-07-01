@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPostForm } from '../api';
+import { apiGet, apiPatch, apiPostForm, apiDelete } from '../api';
 
 export interface UserProfile {
     id: number;
@@ -50,4 +50,8 @@ export async function uploadDrivingLicense(file: File): Promise<string> {
         form
     );
     return data.path;
+}
+
+export async function deleteMyAccount(): Promise<void> {
+    await apiDelete<{ success: boolean; message: string }>('auth/account');
 }

@@ -10,11 +10,13 @@ import {
   AlertCircleIcon,
 } from "lucide-react";
 import { API_BASE_URL, getApiErrorMessage } from "../api/client";
+import { useAuthActions } from "../auth";
 import {
   fetchProfile,
   updateProfile,
   uploadProfilePicture,
   uploadDrivingLicense,
+  deleteMyAccount,
   type UserProfile,
 } from "../services/profile";
 
@@ -26,6 +28,7 @@ type Toast = { message: string; type: "success" | "error" };
 
 export function ProfilePage() {
   const queryClient = useQueryClient();
+  const { logout } = useAuthActions();
 
   const [formData, setFormData] = useState({ name: "", phone: "", age: "" });
 
@@ -117,6 +120,21 @@ export function ProfilePage() {
       showToast(getApiErrorMessage(err), "error");
     },
   });
+
+  // ── 5. Delete account ─────────────────────────────────────────────────────
+  const deleteMutation = useMutation({
+    mutationFn: deleteMyAccount,
+    onSuccess: () => { logout(); },
+    onError: (err) => showToast(getApiErrorMessage(err), "error"),
+  });
+
+  const handleDeleteAccount = () => {
+    if (window.confirm(
+      "Permanently delete your account?\n\nThis will remove all your bookings, scores, membership, and uploaded files. This cannot be undone."
+    )) {
+      deleteMutation.mutate();
+    }
+  };
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -391,6 +409,25 @@ export function ProfilePage() {
               >
                 {isSaving && <Loader2Icon className="w-4 h-4 animate-spin" />}
                 {isSaving ? "Saving…" : "Save Profile"}
+              </button>
+            </div>
+
+            {/* ── Delete account ── */}
+            <div className="mt-6 pt-6 border-t border-navy-700/50">
+              <p className="text-xs text-slate-500 mb-3">
+                Deleting your account is permanent and cannot be undone. All bookings, scores, membership, and uploaded files will be removed.
+              </p>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deleteMutation.isPending}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-red-900/50 text-red-400
+                  hover:bg-red-950/30 hover:border-red-500/50 transition-colors text-sm font-medium
+                  disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleteMutation.isPending
+                  ? <><Loader2Icon className="w-4 h-4 animate-spin" /> Deleting…</>
+                  : "Delete My Account"}
               </button>
             </div>
           </form>

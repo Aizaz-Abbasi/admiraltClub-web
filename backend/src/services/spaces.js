@@ -1,4 +1,4 @@
-const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
 const path = require("path");
 
 const s3 = new S3Client({
@@ -32,4 +32,14 @@ async function uploadToSpaces(file, folder) {
   return `${CDN_BASE}/${key}`;
 }
 
-module.exports = { uploadToSpaces };
+async function deleteFromSpaces(fileUrl) {
+  if (!fileUrl || !fileUrl.startsWith("http")) return;
+  try {
+    const key = new URL(fileUrl).pathname.slice(1); // strip leading /
+    await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+  } catch (err) {
+    console.error("Spaces delete error:", err.message);
+  }
+}
+
+module.exports = { uploadToSpaces, deleteFromSpaces };

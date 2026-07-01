@@ -16,6 +16,7 @@ import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { TermsPage } from "./pages/TermsPage";
 import { PrivacyPage } from "./pages/PrivacyPage";
 import { ClubRulesPage } from "./pages/ClubRulesPage";
+import { DeleteAccountPage } from "./pages/DeleteAccountPage";
 import { getStoredUser, useAuthActions, useAuthUser } from "./auth";
 
 const EMPTY_SEARCH = {
@@ -130,6 +131,12 @@ const clubRulesRoute = createRoute({
   component: ClubRulesPage,
 });
 
+const deleteAccountRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/delete-account",
+  component: DeleteAccountPage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   dashboardRoute,
@@ -137,6 +144,7 @@ const routeTree = rootRoute.addChildren([
   termsRoute,
   privacyRoute,
   clubRulesRoute,
+  deleteAccountRoute,
 ]);
 
 // export const router = createRouter({ routeTree });

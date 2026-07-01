@@ -4,7 +4,8 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { PrismaClient } = require("@prisma/client");
 const { sendPasswordResetEmail } = require("../services/emailService");
-const { uploadToSpaces } = require("../services/spaces");
+const { uploadToSpaces, deleteFromSpaces } = require("../services/spaces");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const prisma = new PrismaClient();
 
 const register = async (req, res) => {
@@ -282,6 +283,47 @@ const resetPassword = async (req, res) => {
   }
 };
 
+const deleteAccount = async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { membership: true },
+    });
+    if (!user) return res.status(404).json({ success: false, message: "User not found." });
+
+    // Cancel active Stripe subscription
+    if (user.membership?.stripeSubscriptionId) {
+      try {
+        await stripe.subscriptions.cancel(user.membership.stripeSubscriptionId);
+      } catch (err) {
+        console.error("Stripe cancel error:", err.message);
+      }
+    }
+
+    // Delete uploaded files from Spaces
+    await Promise.allSettled([
+      deleteFromSpaces(user.profilePicture),
+      deleteFromSpaces(user.drivingLicense),
+    ]);
+
+    // Delete user data (order respects FK constraints)
+    await prisma.$transaction([
+      prisma.dayPass.deleteMany({ where: { userId } }),
+      prisma.reservation.deleteMany({ where: { userId } }),
+      prisma.scorecard.deleteMany({ where: { userId } }),
+      prisma.membership.deleteMany({ where: { userId } }),
+      prisma.user.delete({ where: { id: userId } }),
+    ]);
+    // Payment records are retained for legal/tax compliance
+
+    return res.status(200).json({ success: true, message: "Account deleted successfully." });
+  } catch (err) {
+    console.error("deleteAccount error:", err);
+    return res.status(500).json({ success: false, message: "Failed to delete account. Please try again." });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -291,4 +333,5 @@ module.exports = {
   uploadDrivingLicense,
   forgotPassword,
   resetPassword,
+  deleteAccount,
 };
