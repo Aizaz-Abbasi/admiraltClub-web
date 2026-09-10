@@ -125,6 +125,14 @@ const privacyRoute = createRoute({
   component: PrivacyPage,
 });
 
+// Alias: the iOS app links to /privacy-policy. Keep this route so shipped
+// builds reach the policy rather than the not-found page.
+const privacyPolicyAliasRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/privacy-policy",
+  component: PrivacyPage,
+});
+
 const clubRulesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/rules",
@@ -143,6 +151,7 @@ const routeTree = rootRoute.addChildren([
   resetPasswordRoute,
   termsRoute,
   privacyRoute,
+  privacyPolicyAliasRoute,
   clubRulesRoute,
   deleteAccountRoute,
 ]);
